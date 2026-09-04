@@ -2,42 +2,85 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GutS Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GutS Stream </title>
+    
     <!-- Telegram Web App API -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Video.js CSS -->
-    <link href="https://vjs.zencdn.net/8.5.2/video-js.css" rel="stylesheet" />
+    
+    <!-- Plyr CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    
     <style>
-        body { margin: 0; background-color: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .video-js { width: 100vw; height: 100vh; }
+        body { 
+            margin: 0; 
+            background-color: #000; 
+            overflow: hidden; 
+            height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+        /* Maksa video mentok layar tanpa margin */
+        .plyr { width: 100vw; height: 100vh; }
+        :root { --plyr-color-main: #6b48ff; } /* Ganti warna tema player di sini (Hex Code) */
     </style>
 </head>
 <body>
 
-    <video-js id="my-video" class="video-js vjs-default-skin" controls preload="auto">
-        <p class="vjs-no-js">To view this video please enable JavaScript.</p>
-    </video-js>
+    <video id="my-video" controls crossorigin playsinline></video>
 
-    <!-- Video.js JS -->
-    <script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
+    <!-- HLS.js (Mesin pemutar m3u8) & Plyr (UI Player) -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); 
+        tg.expand(); // Buka Web App full setinggi layar
         
-        // Ambil URL m3u8 dari parameter
         const urlParams = new URLSearchParams(window.location.search);
         const streamUrl = urlParams.get('url');
+        const video = document.getElementById('my-video');
 
         if (streamUrl) {
-            const player = videojs('my-video');
-            player.src({
-                src: decodeURIComponent(streamUrl),
-                type: 'application/x-mpegURL'
+            const cleanUrl = decodeURIComponent(streamUrl).trim();
+            const defaultOptions = {
+                controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'pip', 'fullscreen'],
+                autoplay: true
+            };
+
+            let player;
+
+            // Cek apakah formatnya m3u8 dan browser support HLS
+            if (cleanUrl.includes('.m3u8') && Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(cleanUrl);
+                hls.attachMedia(video);
+                player = new Plyr(video, defaultOptions);
+            } else {
+                // Fallback kalau ternyata link MP4 biasa atau di iOS (Safari native support HLS)
+                video.src = cleanUrl;
+                player = new Plyr(video, defaultOptions);
+            }
+
+            // Fitur maksa layar jadi Landscape (Miring) pas tombol Fullscreen dipencet
+            player.on('enterfullscreen', event => {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(function(error) {
+                        console.log('Auto-landscape diblokir sama HP-nya: ', error);
+                    });
+                }
             });
-            player.play();
+
+            // Balikin ke Portrait (Berdiri) pas keluar dari Fullscreen
+            player.on('exitfullscreen', event => {
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
+            });
+
         } else {
-            alert("No stream URL provided!");
+            document.body.innerHTML = '<h2 style="color:white;text-align:center;font-family:sans-serif;">❌ No Video URL Provided</h2>';
         }
     </script>
 </body>
