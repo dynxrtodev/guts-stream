@@ -28,19 +28,19 @@
 </head>
 <body>
     <div id="reader"></div>
-    <script>
+        <script>
         const urlParams = new URLSearchParams(window.location.search);
         const base = urlParams.get('base');
         const path = urlParams.get('path');
         const imgs = urlParams.get('imgs');
 
-        if (base && path && imgs) {
+        if (base && imgs) {
             const reader = document.getElementById('reader');
             const imgArray = imgs.split(',');
             
             imgArray.forEach(imgFile => {
                 const img = document.createElement('img');
-                img.src = `${base}${path}${imgFile}`;
+                img.src = path ? `${base}/${path}/${imgFile}` : `${base}/${imgFile}`;
                 img.loading = "lazy";
                 reader.appendChild(img);
             });
