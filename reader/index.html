@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>GutS Reader</title>
     <style>
         body { 
@@ -16,13 +17,14 @@
             width: 100%; 
             max-width: 800px; 
             display: block;
-            margin-bottom: -1px; /* Biar kaga ada garis putus antar gambar */
+            margin-bottom: -1px; 
         }
         .error {
             color: white;
             font-family: sans-serif;
             margin-top: 50px;
             text-align: center;
+            padding: 20px;
         }
     </style>
 </head>
@@ -30,27 +32,39 @@
     <div id="reader"></div>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const base = urlParams.get('base');
-        const path = urlParams.get('path');
-        const imgs = urlParams.get('imgs');
+        const baseRaw = urlParams.get('base');
+        const pathRaw = urlParams.get('path');
+        const imgsRaw = urlParams.get('imgs');
 
-        // Cukup pastikan parameter imgs ada
-        if (imgs) {
+        if (imgsRaw) {
             const reader = document.getElementById('reader');
-            const imgArray = imgs.split(',');
+            // Decode the URI component in case the bot encoded it heavily
+            const imgArray = decodeURIComponent(imgsRaw).split(',');
             
             imgArray.forEach(imgFile => {
-                const img = document.createElement('img');
+                if (!imgFile) return; // Skip empty strings
                 
-                // Cek kalau link gambar udah absolut (dari Manhwalist)
-                if (imgFile.startsWith('http')) {
-                    img.src = imgFile;
+                const img = document.createElement('img');
+                const cleanImgFile = imgFile.trim();
+
+                // If it is an absolute URL (starts with http/https or //)
+                if (cleanImgFile.startsWith('http') || cleanImgFile.startsWith('//')) {
+                    img.src = cleanImgFile.startsWith('//') ? 'https:' + cleanImgFile : cleanImgFile;
                 } else {
-                    // Fallback sistem lama buat Shinigami/Komikku
-                    img.src = path ? `${base}/${path}/${imgFile}` : `${base}/${imgFile}`;
+                    // Fallback for Shinigami/Komikku legacy logic
+                    const base = baseRaw ? decodeURIComponent(baseRaw) : '';
+                    const path = pathRaw ? decodeURIComponent(pathRaw) : '';
+                    img.src = path ? `${base}/${path}/${cleanImgFile}` : `${base}/${cleanImgFile}`;
                 }
                 
                 img.loading = "lazy";
+                
+                // Add an error listener to show broken image icons instead of crashing
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    console.error('Failed to load image:', this.src);
+                };
+                
                 reader.appendChild(img);
             });
         } else {
