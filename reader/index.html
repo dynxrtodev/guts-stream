@@ -28,19 +28,28 @@
 </head>
 <body>
     <div id="reader"></div>
-        <script>
+    <script>
         const urlParams = new URLSearchParams(window.location.search);
         const base = urlParams.get('base');
         const path = urlParams.get('path');
         const imgs = urlParams.get('imgs');
 
-        if (base && imgs) {
+        // Cukup pastikan parameter imgs ada
+        if (imgs) {
             const reader = document.getElementById('reader');
             const imgArray = imgs.split(',');
             
             imgArray.forEach(imgFile => {
                 const img = document.createElement('img');
-                img.src = path ? `${base}/${path}/${imgFile}` : `${base}/${imgFile}`;
+                
+                // Cek kalau link gambar udah absolut (dari Manhwalist)
+                if (imgFile.startsWith('http')) {
+                    img.src = imgFile;
+                } else {
+                    // Fallback sistem lama buat Shinigami/Komikku
+                    img.src = path ? `${base}/${path}/${imgFile}` : `${base}/${imgFile}`;
+                }
+                
                 img.loading = "lazy";
                 reader.appendChild(img);
             });
